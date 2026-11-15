@@ -1,0 +1,1686 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LexiBridge — Smart Dictionary & Translator</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter & Noto Sans for global scripts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'Noto Sans', 'sans-serif'],
+          },
+        },
+      },
+    };
+  </script>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 font-sans antialiased min-h-screen flex flex-col selection:bg-indigo-100 selection:text-indigo-900 dark:selection:bg-indigo-900/60 dark:selection:text-indigo-100 transition-colors duration-200">
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-[110] flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- Top Navigation Header (z-50 ensures dropdown menu stays above all main content & desktop sidebar) -->
+  <header class="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 sticky top-0 z-50 overflow-visible transition-colors duration-200">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between overflow-visible">
+      <!-- Brand Logo (Clean branding without AI tags) -->
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center text-white shadow-sm shadow-indigo-200 dark:shadow-indigo-950/50">
+          <i data-lucide="book-open-check" class="w-5 h-5"></i>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="font-bold text-lg tracking-tight text-slate-900 dark:text-white">Lexi<span class="text-indigo-600 dark:text-indigo-400">Bridge</span></span>
+          <span class="hidden sm:inline-block text-xs font-medium px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700">
+            Dictionary & Translator
+          </span>
+        </div>
+      </div>
+
+      <!-- Right Controls: Mobile History Toggle + Top-Right Three-Dot Options Menu -->
+      <div class="flex items-center gap-2.5 relative overflow-visible">
+        <!-- Mobile Recent Searches Drawer Toggle -->
+        <button
+          id="toggle-history-btn"
+          type="button"
+          class="lg:hidden inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 cursor-pointer"
+          aria-label="Toggle Recent Searches"
+        >
+          <i data-lucide="history" class="w-4 h-4 text-indigo-600 dark:text-indigo-400"></i>
+          <span>History</span>
+          <span id="mobile-history-badge" class="hidden ml-0.5 px-1.5 py-0.2 text-xs bg-indigo-100 dark:bg-indigo-900/70 text-indigo-700 dark:text-indigo-300 rounded-full font-semibold">0</span>
+        </button>
+
+        <!-- Three-Dot Options Menu Wrapper -->
+        <div id="options-menu-wrapper" class="relative">
+          <button
+            id="options-menu-btn"
+            type="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+            aria-label="Page options and theme menu"
+            title="Options & Theme"
+            class="p-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+          >
+            <i data-lucide="more-vertical" class="w-5 h-5"></i>
+          </button>
+
+          <!-- Three-Dot Dropdown Panel (z-[100] renders cleanly above Recent Searches panel at z-10) -->
+          <div
+            id="options-dropdown"
+            role="menu"
+            aria-labelledby="options-menu-btn"
+            class="hidden absolute right-0 mt-2 w-64 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl shadow-slate-900/15 dark:shadow-black/50 p-2 z-[100] origin-top-right transition-all"
+          >
+            <div class="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+              Appearance
+            </div>
+
+            <!-- Theme Toggle Row -->
+            <button
+              id="theme-toggle-btn"
+              type="button"
+              role="menuitem"
+              class="w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            >
+              <span class="flex items-center gap-2.5">
+                <span id="theme-icon-wrap" class="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                  <i id="theme-icon" data-lucide="moon" class="w-4 h-4"></i>
+                </span>
+                <span class="text-left">
+                  <span id="theme-label-title" class="block font-semibold text-slate-800 dark:text-slate-100">Dark Mode</span>
+                  <span id="theme-label-sub" class="block text-[11px] text-slate-400 dark:text-slate-400">Switch page theme</span>
+                </span>
+              </span>
+
+              <!-- Visual Toggle Pill -->
+              <span id="theme-switch-pill" class="w-10 h-5.5 rounded-full bg-slate-200 dark:bg-indigo-600 p-0.5 flex items-center transition-colors shrink-0">
+                <span id="theme-switch-knob" class="w-4 h-4 rounded-full bg-white shadow-xs transform translate-x-0 dark:translate-x-4 transition-transform"></span>
+              </span>
+            </button>
+
+            <div class="my-1.5 border-t border-slate-100 dark:border-slate-800"></div>
+
+            <!-- Quick Action: Clear History -->
+            <button
+              id="dropdown-clear-history-btn"
+              type="button"
+              role="menuitem"
+              class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50/70 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+            >
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+              <span>Clear Search History</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Layout (z-10 stays beneath header dropdown) -->
+  <main class="relative z-10 flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-10">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
+      <!-- Left / Primary Column: Search & Dictionary Results -->
+      <div class="lg:col-span-8 space-y-6">
+
+        <!-- Hero Intro -->
+        <div class="space-y-1">
+          <h1 class="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
+            Instant Language Detection, Translation & Meaning
+          </h1>
+          <p class="text-sm sm:text-base text-slate-500 dark:text-slate-400">
+            Type any word or short phrase in any language—LexiBridge detects the language, translates it, and shows its full meaning.
+          </p>
+        </div>
+
+        <!-- Search & Control Card -->
+        <section class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200/90 dark:border-slate-800 p-4 sm:p-6 transition-colors duration-200">
+          <form id="lookup-form" class="space-y-4">
+            <!-- Input & Language Controls Row -->
+            <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+              <!-- Word / Phrase Input -->
+              <div class="sm:col-span-7 relative">
+                <label for="word-input" class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
+                  Word or Phrase (Auto-Detects Language)
+                </label>
+                <div class="relative flex items-center">
+                  <input
+                    id="word-input"
+                    type="text"
+                    autocomplete="off"
+                    placeholder="Type e.g. Serendipity, خوش آمدید, Mariposa..."
+                    class="w-full pl-4 pr-10 py-3 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-base focus:outline-none focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-indigo-500/25 focus:border-indigo-500 transition-all"
+                    required
+                  />
+                  <button
+                    id="clear-input-btn"
+                    type="button"
+                    title="Clear input"
+                    class="hidden absolute right-3 p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                  >
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Swap + Target Language Selector -->
+              <div class="sm:col-span-5 flex items-end gap-2">
+                <button
+                  id="swap-lang-btn"
+                  type="button"
+                  title="Swap translated word into input"
+                  aria-label="Swap translated word into input"
+                  class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/80 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer shrink-0"
+                >
+                  <i data-lucide="arrow-left-right" class="w-4 h-4"></i>
+                </button>
+
+                <div class="flex-1">
+                  <label for="target-lang" class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
+                    Translate Into
+                  </label>
+                  <div class="relative">
+                    <select
+                      id="target-lang"
+                      class="w-full appearance-none pl-3.5 pr-9 py-3 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 font-medium text-sm sm:text-base focus:outline-none focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-indigo-500/25 focus:border-indigo-500 transition-all cursor-pointer"
+                    >
+                      <option value="English">English</option>
+                      <option value="Urdu">Urdu (اردو)</option>
+                      <option value="Spanish">Spanish (Español)</option>
+                      <option value="French">French (Français)</option>
+                      <option value="Arabic">Arabic (العربية)</option>
+                      <option value="German">German (Deutsch)</option>
+                      <option value="Hindi">Hindi (हिन्दी)</option>
+                      <option value="Japanese">Japanese (日本語)</option>
+                      <option value="Chinese">Chinese (中文)</option>
+                      <option value="Turkish">Turkish (Türkçe)</option>
+                      <option value="Russian">Russian (Русский)</option>
+                      <option value="Portuguese">Portuguese (Português)</option>
+                    </select>
+                    <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 pointer-events-none absolute right-3 top-1/2 -translate-y-1/2"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Quick-Try Chips & Submit Button -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+              <div class="flex flex-wrap items-center gap-1.5">
+                <span class="text-xs font-medium text-slate-400 dark:text-slate-500 mr-1">Try:</span>
+                <button type="button" data-sample="Serendipity" data-target="Urdu" class="sample-chip px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/70 text-slate-600 dark:text-slate-300 hover:text-indigo-700 dark:hover:text-indigo-300 border border-slate-200/70 dark:border-slate-700 transition-colors cursor-pointer">
+                  Serendipity
+                </button>
+                <button type="button" data-sample="خوش آمدید" data-target="English" class="sample-chip px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/70 text-slate-600 dark:text-slate-300 hover:text-indigo-700 dark:hover:text-indigo-300 border border-slate-200/70 dark:border-slate-700 transition-colors cursor-pointer">
+                  خوش آمدید
+                </button>
+                <button type="button" data-sample="Mariposa" data-target="English" class="sample-chip px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/70 text-slate-600 dark:text-slate-300 hover:text-indigo-700 dark:hover:text-indigo-300 border border-slate-200/70 dark:border-slate-700 transition-colors cursor-pointer">
+                  Mariposa
+                </button>
+                <button type="button" data-sample="Lumière" data-target="English" class="sample-chip px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/70 text-slate-600 dark:text-slate-300 hover:text-indigo-700 dark:hover:text-indigo-300 border border-slate-200/70 dark:border-slate-700 transition-colors cursor-pointer">
+                  Lumière
+                </button>
+                <button type="button" data-sample="کتاب" data-target="English" class="sample-chip px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/70 text-slate-600 dark:text-slate-300 hover:text-indigo-700 dark:hover:text-indigo-300 border border-slate-200/70 dark:border-slate-700 transition-colors cursor-pointer">
+                  کتاب
+                </button>
+                <button type="button" data-sample="Ephemeral" data-target="Spanish" class="sample-chip px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/70 text-slate-600 dark:text-slate-300 hover:text-indigo-700 dark:hover:text-indigo-300 border border-slate-200/70 dark:border-slate-700 transition-colors cursor-pointer">
+                  Ephemeral
+                </button>
+              </div>
+
+              <button
+                id="search-submit-btn"
+                type="submit"
+                class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-semibold text-sm shadow-sm shadow-indigo-200 dark:shadow-indigo-950/50 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                <i data-lucide="search" class="w-4 h-4"></i>
+                <span>Detect & Define</span>
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <!-- Empty Initial State -->
+        <section id="empty-state" class="bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 p-8 sm:p-12 text-center space-y-3 transition-colors duration-200">
+          <div class="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/70 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mx-auto">
+            <i data-lucide="languages" class="w-6 h-6"></i>
+          </div>
+          <h2 class="text-lg font-semibold text-slate-800 dark:text-slate-100">Ready to explore any language</h2>
+          <p class="text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto">
+            Enter a word above or tap any sample chip to automatically identify its language, see its translation, pronunciation, definitions, and real-world examples.
+          </p>
+        </section>
+
+        <!-- Loading Skeleton State -->
+        <section id="loading-state" class="hidden space-y-4 animate-pulse" aria-live="polite">
+          <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 space-y-4">
+            <div class="flex items-center justify-between">
+              <div class="h-6 w-40 bg-slate-200 dark:bg-slate-800 rounded-full"></div>
+              <div class="h-8 w-24 bg-slate-200 dark:bg-slate-800 rounded-xl"></div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+              <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 space-y-2.5">
+                <div class="h-3 w-20 bg-slate-200 dark:bg-slate-700 rounded"></div>
+                <div class="h-8 w-44 bg-slate-200 dark:bg-slate-700 rounded"></div>
+                <div class="h-4 w-28 bg-slate-200 dark:bg-slate-700 rounded"></div>
+              </div>
+              <div class="p-4 rounded-xl bg-indigo-50/40 dark:bg-indigo-950/30 space-y-2.5">
+                <div class="h-3 w-24 bg-indigo-100 dark:bg-indigo-900/50 rounded"></div>
+                <div class="h-8 w-48 bg-indigo-100 dark:bg-indigo-900/50 rounded"></div>
+                <div class="h-4 w-32 bg-indigo-100 dark:bg-indigo-900/50 rounded"></div>
+              </div>
+            </div>
+          </div>
+          <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 space-y-4">
+            <div class="h-5 w-36 bg-slate-200 dark:bg-slate-800 rounded"></div>
+            <div class="h-4 w-full bg-slate-200 dark:bg-slate-800 rounded"></div>
+            <div class="h-4 w-5/6 bg-slate-200 dark:bg-slate-800 rounded"></div>
+          </div>
+        </section>
+
+        <!-- Error Banner State -->
+        <section id="error-state" class="hidden bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/70 rounded-2xl p-6 text-rose-900 dark:text-rose-200">
+          <div class="flex items-start gap-3.5">
+            <div class="p-2 rounded-xl bg-rose-100 dark:bg-rose-900/60 text-rose-600 dark:text-rose-400 shrink-0">
+              <i data-lucide="alert-circle" class="w-5 h-5"></i>
+            </div>
+            <div class="space-y-1 flex-1">
+              <h3 class="font-semibold text-base">Unable to look up that word right now</h3>
+              <p id="error-message" class="text-sm text-rose-700 dark:text-rose-300">Please check your input or try again in a moment.</p>
+              <div class="pt-2">
+                <button id="retry-btn" type="button" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold transition-colors cursor-pointer">
+                  <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
+                  <span>Try Again</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Dictionary & Translation Results Container -->
+        <article id="result-container" class="hidden space-y-5">
+
+          <!-- Primary Translation & Detection Card -->
+          <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200/90 dark:border-slate-800 overflow-hidden transition-colors duration-200">
+            <!-- Top Metadata Bar: Auto-Detected Badge + Target Badge + Copy All -->
+            <div class="px-5 py-3.5 bg-slate-50/80 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/70">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                  Detected: <span id="res-detected-lang">English</span> (<span id="res-detected-code" class="uppercase">en</span>)
+                </span>
+                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/70 dark:border-indigo-800/70">
+                  <i data-lucide="arrow-right" class="w-3 h-3"></i>
+                  <span id="res-target-badge">Urdu</span>
+                </span>
+              </div>
+
+              <button
+                id="copy-result-btn"
+                type="button"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-indigo-700 dark:hover:text-indigo-300 bg-white dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 border border-slate-200 dark:border-slate-700 transition-all cursor-pointer"
+                title="Copy full dictionary entry"
+              >
+                <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                <span>Copy Entry</span>
+              </button>
+            </div>
+
+            <!-- Side-by-Side Source & Target Cards -->
+            <div class="p-5 sm:p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <!-- Source Word Box -->
+              <div class="p-4 sm:p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/70 flex flex-col justify-between space-y-3">
+                <div>
+                  <div class="flex items-center justify-between gap-2 mb-1">
+                    <span id="res-source-label" class="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-400">Original</span>
+                    <div class="flex items-center gap-1.5">
+                      <button
+                        id="copy-source-btn"
+                        type="button"
+                        class="p-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/70 text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 border border-slate-200/80 dark:border-slate-700 transition-colors cursor-pointer"
+                        title="Copy original word"
+                        aria-label="Copy original word"
+                      >
+                        <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                      </button>
+                      <button
+                        id="speak-source-btn"
+                        type="button"
+                        class="p-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/70 text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 border border-slate-200/80 dark:border-slate-700 transition-colors cursor-pointer"
+                        title="Listen to original pronunciation"
+                        aria-label="Listen to original word"
+                      >
+                        <i data-lucide="volume-2" class="w-4 h-4"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <h2 id="res-source-word" class="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white break-words leading-snug">
+                    —
+                  </h2>
+                  <p id="res-source-phonetic" class="text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium italic">
+                    —
+                  </p>
+                </div>
+                <div>
+                  <span id="res-pos-badge" class="inline-block px-2.5 py-0.5 rounded-md text-xs font-semibold bg-slate-200/70 dark:bg-slate-700 text-slate-700 dark:text-slate-200 capitalize">
+                    noun
+                  </span>
+                </div>
+              </div>
+
+              <!-- Translated Word Box -->
+              <div class="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-indigo-50/90 to-violet-50/70 dark:from-indigo-950/50 dark:to-violet-950/40 border border-indigo-200/70 dark:border-indigo-800/60 flex flex-col justify-between space-y-3">
+                <div>
+                  <div class="flex items-center justify-between gap-2 mb-1">
+                    <span id="res-target-label" class="text-xs font-semibold uppercase tracking-wider text-indigo-500 dark:text-indigo-400">Translation</span>
+                    <div class="flex items-center gap-1.5">
+                      <button
+                        id="copy-target-btn"
+                        type="button"
+                        class="p-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-900/70 text-indigo-600 dark:text-indigo-400 border border-indigo-200/80 dark:border-indigo-800/70 transition-colors cursor-pointer"
+                        title="Copy translated word"
+                        aria-label="Copy translated word"
+                      >
+                        <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                      </button>
+                      <button
+                        id="speak-target-btn"
+                        type="button"
+                        class="p-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-indigo-600 dark:hover:bg-indigo-600 text-indigo-600 dark:text-indigo-300 hover:text-white border border-indigo-200/80 dark:border-indigo-800/70 transition-colors cursor-pointer"
+                        title="Listen to translated pronunciation"
+                        aria-label="Listen to translated word"
+                      >
+                        <i data-lucide="volume-2" class="w-4 h-4"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <p id="res-translated-word" class="text-2xl sm:text-3xl font-bold text-indigo-950 dark:text-indigo-100 break-words leading-snug">
+                    —
+                  </p>
+                  <p id="res-target-phonetic" class="text-sm text-indigo-700/80 dark:text-indigo-300/80 mt-1 font-medium italic">
+                    —
+                  </p>
+                </div>
+                <div id="res-alt-translations-wrap" class="hidden">
+                  <p class="text-xs text-indigo-800/80 dark:text-indigo-200/80">
+                    <span class="font-semibold">Also:</span> <span id="res-alt-translations"></span>
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dictionary Meanings & Definitions Card -->
+          <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200/90 dark:border-slate-800 p-5 sm:p-6 space-y-5 transition-colors duration-200">
+            <div class="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div class="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/70 text-indigo-600 dark:text-indigo-400">
+                <i data-lucide="book-open" class="w-4 h-4"></i>
+              </div>
+              <h3 class="font-bold text-slate-900 dark:text-white text-base sm:text-lg">Dictionary Meanings</h3>
+            </div>
+
+            <div id="res-definitions-list" class="space-y-4">
+              <!-- Populated dynamically -->
+            </div>
+          </div>
+
+          <!-- Real-World Examples Card -->
+          <div id="res-examples-card" class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200/90 dark:border-slate-800 p-5 sm:p-6 space-y-4 transition-colors duration-200">
+            <div class="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div class="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/70 text-emerald-600 dark:text-emerald-400">
+                <i data-lucide="quote" class="w-4 h-4"></i>
+              </div>
+              <h3 class="font-bold text-slate-900 dark:text-white text-base sm:text-lg">Context & Example Sentences</h3>
+            </div>
+
+            <div id="res-examples-list" class="space-y-3">
+              <!-- Populated dynamically -->
+            </div>
+          </div>
+
+          <!-- Synonyms & Related Words Card -->
+          <div id="res-synonyms-card" class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200/90 dark:border-slate-800 p-5 sm:p-6 space-y-3 transition-colors duration-200">
+            <div class="flex items-center gap-2">
+              <div class="p-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/70 text-amber-600 dark:text-amber-400">
+                <i data-lucide="layers" class="w-4 h-4"></i>
+              </div>
+              <h3 class="font-bold text-slate-900 dark:text-white text-base">Synonyms & Related Words</h3>
+            </div>
+            <div id="res-synonyms-list" class="flex flex-wrap gap-2 pt-1">
+              <!-- Populated dynamically -->
+            </div>
+          </div>
+
+        </article>
+      </div>
+
+      <!-- Right Column / Drawer: Recent Searches Sidebar (z-10 on desktop so header dropdown at z-[100] renders cleanly above it) -->
+      <aside
+        id="history-drawer"
+        class="fixed inset-y-0 right-0 z-40 lg:z-10 w-80 max-w-[85vw] bg-white dark:bg-slate-900 lg:bg-transparent lg:dark:bg-transparent shadow-2xl lg:shadow-none transform translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out lg:static lg:w-auto lg:col-span-4 flex flex-col"
+      >
+        <div class="h-full lg:h-auto bg-white dark:bg-slate-900 rounded-none lg:rounded-2xl lg:shadow-sm border-l lg:border border-slate-200/90 dark:border-slate-800 p-5 flex flex-col transition-colors duration-200">
+          <!-- Sidebar Header -->
+          <div class="flex items-center justify-between pb-3.5 border-b border-slate-100 dark:border-slate-800">
+            <div class="flex items-center gap-2">
+              <i data-lucide="history" class="w-4 h-4 text-indigo-600 dark:text-indigo-400"></i>
+              <h2 class="font-bold text-slate-900 dark:text-white text-sm sm:text-base">Recent Searches</h2>
+            </div>
+            <div class="flex items-center gap-2">
+              <button
+                id="clear-history-btn"
+                type="button"
+                class="hidden text-xs font-medium text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors cursor-pointer"
+              >
+                Clear all
+              </button>
+              <button
+                id="close-history-btn"
+                type="button"
+                class="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                aria-label="Close history"
+              >
+                <i data-lucide="x" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- History Items List -->
+          <div id="history-list" class="flex-1 overflow-y-auto py-3 space-y-2 max-h-[calc(100vh-8rem)] lg:max-h-[540px]">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+      </aside>
+
+    </div>
+  </main>
+
+  <!-- Mobile Backdrop for History Drawer -->
+  <div id="drawer-backdrop" class="fixed inset-0 bg-slate-900/40 dark:bg-black/60 backdrop-blur-xs z-30 hidden lg:hidden"></div>
+
+  <!-- Footer -->
+  <footer class="relative z-10 border-t border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 mt-auto transition-colors duration-200">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
+      <p>LexiBridge Dictionary & Translator — Detect, Translate & Understand.</p>
+      <p>Multilingual Dictionary & Audio Pronunciation</p>
+    </div>
+  </footer>
+
+  <!-- Hidden textarea fallback for reliable clipboard copy inside iframes -->
+  <textarea id="clipboard-helper" class="sr-only" aria-hidden="true"></textarea>
+
+  <script>
+    /**
+     * LexiBridge — Smart Dictionary & Translator
+     * Multi-tier automatic language detection, translation, dictionary definitions,
+     * phonetics, examples, synonyms, audio pronunciation, and Light/Dark theme switcher.
+     */
+
+    // =========================================================================
+    // 1. CONSTANTS, LANGUAGE MAPS & OFFLINE DICTIONARY FALLBACK
+    // =========================================================================
+    const HISTORY_STORAGE_KEY = 'lexibridge_recent_searches_v2';
+    const THEME_STORAGE_KEY = 'lexibridge_theme_v1';
+    const MAX_HISTORY_ITEMS = 15;
+
+    const LANG_CODE_TO_NAME = {
+      en: 'English',
+      ur: 'Urdu',
+      es: 'Spanish',
+      fr: 'French',
+      ar: 'Arabic',
+      de: 'German',
+      hi: 'Hindi',
+      ja: 'Japanese',
+      zh: 'Chinese',
+      'zh-CN': 'Chinese',
+      'zh-TW': 'Chinese',
+      tr: 'Turkish',
+      ru: 'Russian',
+      pt: 'Portuguese',
+      it: 'Italian',
+      ko: 'Korean',
+      fa: 'Persian',
+      bn: 'Bengali',
+      pa: 'Punjabi'
+    };
+
+    const LANG_NAME_TO_CODE = {
+      English: 'en',
+      Urdu: 'ur',
+      Spanish: 'es',
+      French: 'fr',
+      Arabic: 'ar',
+      German: 'de',
+      Hindi: 'hi',
+      Japanese: 'ja',
+      Chinese: 'zh-CN',
+      Turkish: 'tr',
+      Russian: 'ru',
+      Portuguese: 'pt'
+    };
+
+    const SPEECH_LANG_MAP = {
+      en: 'en-US',
+      ur: 'ur-PK',
+      es: 'es-ES',
+      fr: 'fr-FR',
+      ar: 'ar-SA',
+      de: 'de-DE',
+      hi: 'hi-IN',
+      ja: 'ja-JP',
+      zh: 'zh-CN',
+      'zh-CN': 'zh-CN',
+      tr: 'tr-TR',
+      ru: 'ru-RU',
+      pt: 'pt-PT',
+      it: 'it-IT',
+      ko: 'ko-KR'
+    };
+
+    // Built-in rich offline entries for sample pills & instant offline resilience
+    const OFFLINE_ENTRIES = {
+      serendipity: {
+        sourceWord: 'Serendipity',
+        detectedLanguage: 'English',
+        detectedLanguageCode: 'en',
+        sourcePhonetic: 'ˌsɛr.ənˈdɪp.ɪ.ti',
+        partOfSpeech: 'noun',
+        translations: {
+          Urdu: { word: 'خوش قسمتی سے اچانک دریافت', phonetic: 'khush-qismati se achanak daryaft' },
+          Spanish: { word: 'Serendipia', phonetic: 'se-ren-di-pia' },
+          French: { word: 'Sérendipité', phonetic: 'se-ʁɑ̃-di-pi-te' },
+          Arabic: { word: 'مصادفة سعيدة', phonetic: 'musadafa saeida' },
+          German: { word: 'Glücklicher Zufall', phonetic: '' },
+          Hindi: { word: 'आकस्मिक सौभाग्य', phonetic: 'aakasmik saubhagya' },
+          English: { word: 'Serendipity', phonetic: 'ˌsɛr.ənˈdɪp.ɪ.ti' }
+        },
+        meanings: [
+          {
+            pos: 'noun',
+            definitions: [
+              {
+                en: 'The occurrence and development of events by chance in a happy or beneficial way.',
+                example: 'A fortunate stroke of serendipity brought the two old friends together in Paris.'
+              },
+              {
+                en: 'A natural aptitude for making desirable discoveries by accident.',
+                example: 'Many great scientific breakthroughs were aided by serendipity.'
+              }
+            ]
+          }
+        ],
+        synonyms: ['fortuity', 'chance', 'providence', 'good fortune', 'fluke']
+      },
+      'خوش آمدید': {
+        sourceWord: 'خوش آمدید',
+        detectedLanguage: 'Urdu',
+        detectedLanguageCode: 'ur',
+        sourcePhonetic: 'khush aamdeed',
+        partOfSpeech: 'interjection / phrase',
+        translations: {
+          English: { word: 'Welcome', phonetic: 'ˈwɛl.kəm' },
+          Spanish: { word: 'Bienvenido', phonetic: 'bjen-be-ˈni-ðo' },
+          French: { word: 'Bienvenue', phonetic: 'bjɛ̃v.ny' },
+          Arabic: { word: 'أهلاً وسهلاً', phonetic: 'ahlan wa sahlan' },
+          Hindi: { word: 'स्वागत है', phonetic: 'svaagat hai' },
+          Urdu: { word: 'خوش آمدید', phonetic: 'khush aamdeed' }
+        },
+        meanings: [
+          {
+            pos: 'interjection',
+            definitions: [
+              {
+                en: 'Used as a polite and warm greeting to someone arriving at a place.',
+                example: 'خوش آمدید! ہمیں آپ سے مل کر بہت خوشی ہوئی۔'
+              }
+            ]
+          }
+        ],
+        synonyms: ['مرحبا', 'اہلاً و سہلاً', 'پخیر راغلے']
+      },
+      mariposa: {
+        sourceWord: 'Mariposa',
+        detectedLanguage: 'Spanish',
+        detectedLanguageCode: 'es',
+        sourcePhonetic: 'ma.ɾi.ˈpo.sa',
+        partOfSpeech: 'noun',
+        translations: {
+          English: { word: 'Butterfly', phonetic: 'ˈbʌt.ə.flaɪ' },
+          Urdu: { word: 'تتلی', phonetic: 'titli' },
+          French: { word: 'Papillon', phonetic: 'pa.pi.jɔ̃' },
+          German: { word: 'Schmetterling', phonetic: 'ˈʃmɛtɐlɪŋ' },
+          Arabic: { word: 'فراشة', phonetic: 'farasha' },
+          Spanish: { word: 'Mariposa', phonetic: 'ma.ɾi.ˈpo.sa' }
+        },
+        meanings: [
+          {
+            pos: 'noun',
+            definitions: [
+              {
+                en: 'A nectar-feeding insect with two pairs of large, typically brightly colored wings.',
+                example: 'Una mariposa monarca se posó suavemente sobre la flor.'
+              }
+            ]
+          }
+        ],
+        synonyms: ['lepidóptero', 'papalote']
+      },
+      lumière: {
+        sourceWord: 'Lumière',
+        detectedLanguage: 'French',
+        detectedLanguageCode: 'fr',
+        sourcePhonetic: 'ly.mjɛʁ',
+        partOfSpeech: 'noun',
+        translations: {
+          English: { word: 'Light', phonetic: 'laɪt' },
+          Urdu: { word: 'روشنی', phonetic: 'roshni' },
+          Spanish: { word: 'Luz', phonetic: 'luθ' },
+          German: { word: 'Licht', phonetic: 'lɪçt' },
+          Arabic: { word: 'نور / ضوء', phonetic: 'noor / daw' },
+          French: { word: 'Lumière', phonetic: 'ly.mjɛʁ' }
+        },
+        meanings: [
+          {
+            pos: 'noun',
+            definitions: [
+              {
+                en: 'The natural agent that stimulates sight and makes things visible; illumination.',
+                example: 'La lumière du matin illuminait toute la pièce.'
+              },
+              {
+                en: 'Enlightenment, clarity, or intellectual insight.',
+                example: 'Cette découverte apporte une lumière nouvelle sur le problème.'
+              }
+            ]
+          }
+        ],
+        synonyms: ['clarté', 'lueur', 'éclat', 'rayonnement']
+      },
+      'کتاب': {
+        sourceWord: 'کتاب',
+        detectedLanguage: 'Urdu',
+        detectedLanguageCode: 'ur',
+        sourcePhonetic: 'kitaab',
+        partOfSpeech: 'noun',
+        translations: {
+          English: { word: 'Book', phonetic: 'bʊk' },
+          Spanish: { word: 'Libro', phonetic: 'ˈli.βɾo' },
+          French: { word: 'Livre', phonetic: 'livʁ' },
+          Arabic: { word: 'كتاب', phonetic: 'kitaab' },
+          Hindi: { word: 'पुस्तक / किताब', phonetic: 'pustak / kitaab' },
+          Urdu: { word: 'کتاب', phonetic: 'kitaab' }
+        },
+        meanings: [
+          {
+            pos: 'noun',
+            definitions: [
+              {
+                en: 'A written or printed work consisting of pages glued or sewn together along one side and bound in covers.',
+                example: 'یہ کتاب علم اور حکمت سے بھری ہوئی ہے۔'
+              }
+            ]
+          }
+        ],
+        synonyms: ['تصنیف', 'رسالہ', 'صحیفہ', 'جلد']
+      },
+      ephemeral: {
+        sourceWord: 'Ephemeral',
+        detectedLanguage: 'English',
+        detectedLanguageCode: 'en',
+        sourcePhonetic: 'ɪˈfɛm.ər.əl',
+        partOfSpeech: 'adjective',
+        translations: {
+          Spanish: { word: 'Efímero', phonetic: 'e-ˈfi-me-ɾo' },
+          Urdu: { word: 'عارضی / ناپائیدار', phonetic: 'aarzi / na-paidaar' },
+          French: { word: 'Éphémère', phonetic: 'e.fe.mɛʁ' },
+          German: { word: 'Vergänglich', phonetic: 'fɛɐ̯ˈɡɛŋlɪç' },
+          Arabic: { word: 'عابر / زائل', phonetic: 'aabir / zaail' },
+          English: { word: 'Ephemeral', phonetic: 'ɪˈfɛm.ər.əl' }
+        },
+        meanings: [
+          {
+            pos: 'adjective',
+            definitions: [
+              {
+                en: 'Lasting for a very short time; transitory.',
+                example: 'Fashions are ephemeral, changing with every new season.'
+              }
+            ]
+          }
+        ],
+        synonyms: ['transitory', 'transient', 'fleeting', 'short-lived', 'momentary']
+      }
+    };
+
+    // =========================================================================
+    // 2. APPLICATION STATE & DOM REFERENCES
+    // =========================================================================
+    let currentResult = null;
+    let lastQuery = { word: '', targetLang: 'Urdu' };
+    let searchHistory = [];
+    let isDarkMode = false;
+
+    const elements = {
+      htmlRoot: document.documentElement,
+      form: document.getElementById('lookup-form'),
+      wordInput: document.getElementById('word-input'),
+      clearInputBtn: document.getElementById('clear-input-btn'),
+      swapLangBtn: document.getElementById('swap-lang-btn'),
+      targetLangSelect: document.getElementById('target-lang'),
+      submitBtn: document.getElementById('search-submit-btn'),
+      sampleChips: document.querySelectorAll('.sample-chip'),
+
+      // Options & Theme Menu
+      optionsMenuWrapper: document.getElementById('options-menu-wrapper'),
+      optionsMenuBtn: document.getElementById('options-menu-btn'),
+      optionsDropdown: document.getElementById('options-dropdown'),
+      themeToggleBtn: document.getElementById('theme-toggle-btn'),
+      themeIcon: document.getElementById('theme-icon'),
+      themeLabelTitle: document.getElementById('theme-label-title'),
+      themeLabelSub: document.getElementById('theme-label-sub'),
+      dropdownClearHistoryBtn: document.getElementById('dropdown-clear-history-btn'),
+
+      // View States
+      emptyState: document.getElementById('empty-state'),
+      loadingState: document.getElementById('loading-state'),
+      errorState: document.getElementById('error-state'),
+      errorMessage: document.getElementById('error-message'),
+      retryBtn: document.getElementById('retry-btn'),
+      resultContainer: document.getElementById('result-container'),
+
+      // Result Fields
+      detectedLang: document.getElementById('res-detected-lang'),
+      detectedCode: document.getElementById('res-detected-code'),
+      targetBadge: document.getElementById('res-target-badge'),
+      copyResultBtn: document.getElementById('copy-result-btn'),
+
+      sourceLabel: document.getElementById('res-source-label'),
+      sourceWord: document.getElementById('res-source-word'),
+      sourcePhonetic: document.getElementById('res-source-phonetic'),
+      posBadge: document.getElementById('res-pos-badge'),
+      copySourceBtn: document.getElementById('copy-source-btn'),
+      speakSourceBtn: document.getElementById('speak-source-btn'),
+
+      targetLabel: document.getElementById('res-target-label'),
+      translatedWord: document.getElementById('res-translated-word'),
+      targetPhonetic: document.getElementById('res-target-phonetic'),
+      altTranslationsWrap: document.getElementById('res-alt-translations-wrap'),
+      altTranslations: document.getElementById('res-alt-translations'),
+      copyTargetBtn: document.getElementById('copy-target-btn'),
+      speakTargetBtn: document.getElementById('speak-target-btn'),
+
+      definitionsList: document.getElementById('res-definitions-list'),
+      examplesCard: document.getElementById('res-examples-card'),
+      examplesList: document.getElementById('res-examples-list'),
+      synonymsCard: document.getElementById('res-synonyms-card'),
+      synonymsList: document.getElementById('res-synonyms-list'),
+
+      // History Sidebar / Drawer
+      historyDrawer: document.getElementById('history-drawer'),
+      drawerBackdrop: document.getElementById('drawer-backdrop'),
+      toggleHistoryBtn: document.getElementById('toggle-history-btn'),
+      closeHistoryBtn: document.getElementById('close-history-btn'),
+      mobileHistoryBadge: document.getElementById('mobile-history-badge'),
+      historyList: document.getElementById('history-list'),
+      clearHistoryBtn: document.getElementById('clear-history-btn'),
+
+      clipboardHelper: document.getElementById('clipboard-helper'),
+      toastContainer: document.getElementById('toast-container')
+    };
+
+    // =========================================================================
+    // 3. THEME & THREE-DOT MENU MANAGEMENT
+    // =========================================================================
+
+    function applyTheme(dark) {
+      isDarkMode = Boolean(dark);
+      if (isDarkMode) {
+        elements.htmlRoot.classList.add('dark');
+        elements.htmlRoot.classList.remove('light');
+        elements.themeLabelTitle.textContent = 'Light Mode';
+        elements.themeLabelSub.textContent = 'Switch to bright theme';
+        elements.themeIcon.setAttribute('data-lucide', 'sun');
+      } else {
+        elements.htmlRoot.classList.remove('dark');
+        elements.htmlRoot.classList.add('light');
+        elements.themeLabelTitle.textContent = 'Dark Mode';
+        elements.themeLabelSub.textContent = 'Switch to dark theme';
+        elements.themeIcon.setAttribute('data-lucide', 'moon');
+      }
+
+      try {
+        localStorage.setItem(THEME_STORAGE_KEY, isDarkMode ? 'dark' : 'light');
+      } catch (e) {}
+
+      if (window.lucide) {
+        lucide.createIcons();
+      }
+    }
+
+    function initTheme() {
+      let savedTheme = null;
+      try {
+        savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+      } catch (e) {}
+
+      if (savedTheme === 'dark') {
+        applyTheme(true);
+      } else if (savedTheme === 'light') {
+        applyTheme(false);
+      } else {
+        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        applyTheme(prefersDark);
+      }
+    }
+
+    function toggleOptionsMenu(forceState) {
+      const isCurrentlyHidden = elements.optionsDropdown.classList.contains('hidden');
+      const shouldOpen = typeof forceState === 'boolean' ? forceState : isCurrentlyHidden;
+
+      if (shouldOpen) {
+        elements.optionsDropdown.classList.remove('hidden');
+        elements.optionsMenuBtn.setAttribute('aria-expanded', 'true');
+      } else {
+        elements.optionsDropdown.classList.add('hidden');
+        elements.optionsMenuBtn.setAttribute('aria-expanded', 'false');
+      }
+    }
+
+    // =========================================================================
+    // 4. UI & SCRIPT UTILITIES
+    // =========================================================================
+
+    function showToast(message, type = 'info') {
+      const toast = document.createElement('div');
+      const colors = {
+        info: 'bg-slate-900 dark:bg-slate-800 text-white border border-slate-700',
+        success: 'bg-emerald-600 text-white',
+        warning: 'bg-amber-600 text-white',
+        error: 'bg-rose-600 text-white'
+      };
+      toast.className = `${colors[type] || colors.info} px-4 py-2.5 rounded-xl shadow-lg text-xs sm:text-sm font-medium flex items-center gap-2 transition-all duration-300 opacity-0 translate-y-2`;
+      toast.textContent = message;
+      elements.toastContainer.appendChild(toast);
+
+      requestAnimationFrame(() => {
+        toast.classList.remove('opacity-0', 'translate-y-2');
+      });
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 2600);
+    }
+
+    function setViewState(state) {
+      elements.emptyState.classList.add('hidden');
+      elements.loadingState.classList.add('hidden');
+      elements.errorState.classList.add('hidden');
+      elements.resultContainer.classList.add('hidden');
+
+      if (state === 'empty') elements.emptyState.classList.remove('hidden');
+      if (state === 'loading') elements.loadingState.classList.remove('hidden');
+      if (state === 'error') elements.errorState.classList.remove('hidden');
+      if (state === 'result') elements.resultContainer.classList.remove('hidden');
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function isRTL(text) {
+      if (!text) return false;
+      return /[\u0591-\u07FF\uFB1D-\uFDFD\uFE70-\uFEFC]/.test(text);
+    }
+
+    function copyToClipboard(text, label = 'Text') {
+      if (!text) return;
+      try {
+        elements.clipboardHelper.value = text;
+        elements.clipboardHelper.classList.remove('sr-only');
+        elements.clipboardHelper.select();
+        elements.clipboardHelper.setSelectionRange(0, 99999);
+        const ok = document.execCommand('copy');
+        elements.clipboardHelper.classList.add('sr-only');
+        if (ok) {
+          showToast(`${label} copied to clipboard!`, 'success');
+        } else {
+          showToast('Unable to copy automatically.', 'warning');
+        }
+      } catch (err) {
+        elements.clipboardHelper.classList.add('sr-only');
+        showToast('Clipboard copy failed.', 'error');
+      }
+    }
+
+    function speakText(text, langCodeOrName) {
+      if (!('speechSynthesis' in window)) {
+        showToast('Audio pronunciation is not supported in this browser.', 'warning');
+        return;
+      }
+      if (!text) return;
+
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      const code = LANG_NAME_TO_CODE[langCodeOrName] || langCodeOrName || 'en';
+      utterance.lang = SPEECH_LANG_MAP[code] || code || 'en-US';
+      utterance.rate = 0.92;
+      utterance.onerror = () => {
+        showToast('Pronunciation voice unavailable for this language.', 'warning');
+      };
+      window.speechSynthesis.speak(utterance);
+    }
+
+    /**
+     * Heuristic Unicode script detector used as instant local language identifier & fallback.
+     */
+    function detectScriptLanguage(text) {
+      const clean = text.trim();
+      if (/[\u0600-\u06FF]/.test(clean)) {
+        // Distinguish Urdu-specific characters (ٹ ڈ ڑ ں ے ہ) vs general Arabic
+        if (/[ٹڈڑںےہپچژگ]/.test(clean)) {
+          return { code: 'ur', name: 'Urdu' };
+        }
+        return { code: 'ar', name: 'Arabic' };
+      }
+      if (/[\u0900-\u097F]/.test(clean)) return { code: 'hi', name: 'Hindi' };
+      if (/[\u3040-\u30FF]/.test(clean)) return { code: 'ja', name: 'Japanese' };
+      if (/[\u4E00-\u9FFF]/.test(clean)) return { code: 'zh-CN', name: 'Chinese' };
+      if (/[\u0400-\u04FF]/.test(clean)) return { code: 'ru', name: 'Russian' };
+      if (/[ñ¿¡]/i.test(clean)) return { code: 'es', name: 'Spanish' };
+      if (/[éèêëàâîïôùûçœ]/i.test(clean)) return { code: 'fr', name: 'French' };
+      if (/[äöüß]/i.test(clean)) return { code: 'de', name: 'German' };
+      if (/[ğşıİöüç]/i.test(clean)) return { code: 'tr', name: 'Turkish' };
+      return { code: 'en', name: 'English' };
+    }
+
+    // =========================================================================
+    // 5. MULTI-TIER TRANSLATION & DICTIONARY LOOKUP ENGINE
+    // =========================================================================
+
+    /**
+     * Primary translation + auto-detection using Google Translate public endpoint.
+     */
+    async function fetchGoogleTranslate(text, sourceCode = 'auto', targetCode = 'en') {
+      const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${encodeURIComponent(sourceCode)}&tl=${encodeURIComponent(targetCode)}&dt=t&dt=bd&dt=rm&q=${encodeURIComponent(text)}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`Translate HTTP ${res.status}`);
+      const data = await res.json();
+
+      // Extract primary translated text
+      let translatedText = '';
+      let targetTranslit = '';
+      let sourceTranslit = '';
+
+      if (Array.isArray(data[0])) {
+        data[0].forEach(seg => {
+          if (seg[0]) translatedText += seg[0];
+          if (seg[2]) targetTranslit += seg[2];
+          if (seg[3]) sourceTranslit += seg[3];
+        });
+      }
+
+      const detectedCode = data[2] || detectScriptLanguage(text).code;
+      const alternatives = [];
+
+      if (Array.isArray(data[1])) {
+        data[1].forEach(group => {
+          if (Array.isArray(group[1])) {
+            group[1].slice(0, 3).forEach(alt => {
+              if (alt && alt.toLowerCase() !== translatedText.toLowerCase() && !alternatives.includes(alt)) {
+                alternatives.push(alt);
+              }
+            });
+          }
+        });
+      }
+
+      return {
+        translatedText: translatedText.trim(),
+        detectedCode,
+        sourceTranslit: sourceTranslit.trim(),
+        targetTranslit: targetTranslit.trim(),
+        alternatives: alternatives.slice(0, 4)
+      };
+    }
+
+    /**
+     * Fallback translation via MyMemory API.
+     */
+    async function fetchMyMemoryTranslate(text, sourceCode, targetCode) {
+      const src = sourceCode === 'auto' ? detectScriptLanguage(text).code : sourceCode;
+      const langPair = `${src}|${targetCode}`;
+      const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${encodeURIComponent(langPair)}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`MyMemory HTTP ${res.status}`);
+      const data = await res.json();
+      const translatedText = data?.responseData?.translatedText;
+      if (!translatedText) throw new Error('Empty MyMemory response');
+      return {
+        translatedText: translatedText.trim(),
+        detectedCode: src,
+        sourceTranslit: '',
+        targetTranslit: '',
+        alternatives: []
+      };
+    }
+
+    /**
+     * Fetches English dictionary entries (phonetics, parts of speech, definitions, examples, synonyms).
+     */
+    async function fetchEnglishDictionary(word) {
+      const cleanWord = word.trim().split(/\s+/)[0].replace(/[^\w'-]/g, '');
+      if (!cleanWord) return null;
+
+      try {
+        const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(cleanWord)}`);
+        if (!res.ok) return null;
+        const entries = await res.json();
+        if (!Array.isArray(entries) || entries.length === 0) return null;
+
+        const entry = entries[0];
+        const phoneticObj = (entry.phonetics || []).find(p => p.text) || {};
+        const phonetic = (entry.phonetic || phoneticObj.text || '').replace(/^\/|\/$/g, '');
+
+        const meanings = [];
+        const allSynonyms = new Set();
+
+        (entry.meanings || []).forEach(m => {
+          const defs = (m.definitions || []).slice(0, 3).map(d => ({
+            en: d.definition,
+            example: d.example || ''
+          }));
+          if (defs.length > 0) {
+            meanings.push({
+              pos: m.partOfSpeech || 'word',
+              definitions: defs
+            });
+          }
+          (m.synonyms || []).slice(0, 5).forEach(s => allSynonyms.add(s));
+        });
+
+        return {
+          phonetic,
+          meanings,
+          synonyms: Array.from(allSynonyms).slice(0, 8)
+        };
+      } catch (e) {
+        return null;
+      }
+    }
+
+    /**
+     * Unified lookup orchestrator combining auto-detection, translation, dictionary data, and offline fallbacks.
+     */
+    async function lookupWord(rawWord, targetLanguage) {
+      const word = rawWord.trim();
+      const lowerKey = word.toLowerCase();
+      const targetCode = LANG_NAME_TO_CODE[targetLanguage] || 'en';
+      const offlineHit = OFFLINE_ENTRIES[lowerKey] || OFFLINE_ENTRIES[word];
+
+      let detectedCode = offlineHit ? offlineHit.detectedLanguageCode : detectScriptLanguage(word).code;
+      let detectedLanguage = offlineHit ? offlineHit.detectedLanguage : (LANG_CODE_TO_NAME[detectedCode] || 'Auto-Detected');
+      let translatedWord = '';
+      let sourcePhonetic = offlineHit?.sourcePhonetic || '';
+      let targetPhonetic = '';
+      let alternativeTranslations = [];
+
+      // Step 1: Translate & auto-detect language
+      try {
+        const gt = await fetchGoogleTranslate(word, 'auto', targetCode);
+        if (gt.detectedCode) {
+          detectedCode = gt.detectedCode;
+          detectedLanguage = LANG_CODE_TO_NAME[detectedCode] || LANG_CODE_TO_NAME[detectedCode.split('-')[0]] || detectedCode.toUpperCase();
+        }
+        translatedWord = gt.translatedText || word;
+        if (!sourcePhonetic && gt.sourceTranslit) sourcePhonetic = gt.sourceTranslit;
+        if (gt.targetTranslit) targetPhonetic = gt.targetTranslit;
+        alternativeTranslations = gt.alternatives || [];
+      } catch (primaryErr) {
+        try {
+          const mm = await fetchMyMemoryTranslate(word, detectedCode, targetCode);
+          translatedWord = mm.translatedText;
+        } catch (fallbackErr) {
+          if (offlineHit) {
+            const tEntry = offlineHit.translations[targetLanguage] || offlineHit.translations.English;
+            translatedWord = tEntry ? tEntry.word : word;
+            targetPhonetic = tEntry ? tEntry.phonetic : '';
+          } else {
+            throw new Error('Translation service unreachable');
+          }
+        }
+      }
+
+      // Apply offline translation enrichment if available and translation matched input
+      if (offlineHit && offlineHit.translations[targetLanguage]) {
+        if (!translatedWord || translatedWord.toLowerCase() === word.toLowerCase()) {
+          translatedWord = offlineHit.translations[targetLanguage].word;
+        }
+        if (!targetPhonetic) {
+          targetPhonetic = offlineHit.translations[targetLanguage].phonetic;
+        }
+      }
+
+      // Step 2: Obtain English anchor word for dictionary lookup
+      let englishAnchor = '';
+      if (detectedCode.startsWith('en')) {
+        englishAnchor = word;
+      } else if (targetCode === 'en') {
+        englishAnchor = translatedWord;
+      } else {
+        try {
+          const toEn = await fetchGoogleTranslate(word, detectedCode, 'en');
+          englishAnchor = toEn.translatedText;
+        } catch (e) {
+          englishAnchor = offlineHit?.translations?.English?.word || '';
+        }
+      }
+
+      // Step 3: Fetch rich dictionary meanings, phonetics, examples, and synonyms
+      let dictData = await fetchEnglishDictionary(englishAnchor);
+
+      if (!dictData && offlineHit) {
+        dictData = {
+          phonetic: offlineHit.sourcePhonetic,
+          meanings: offlineHit.meanings,
+          synonyms: offlineHit.synonyms
+        };
+      }
+
+      // Build structured meanings list
+      let meanings = dictData?.meanings ? JSON.parse(JSON.stringify(dictData.meanings)) : [];
+      if (meanings.length === 0) {
+        meanings = [
+          {
+            pos: offlineHit?.partOfSpeech || 'word / phrase',
+            definitions: [
+              {
+                en: englishAnchor && englishAnchor.toLowerCase() !== word.toLowerCase()
+                  ? `Means "${englishAnchor}" (${translatedWord} in ${targetLanguage}).`
+                  : `Translated as "${translatedWord}" in ${targetLanguage}.`,
+                example: ''
+              }
+            ]
+          }
+        ];
+      }
+
+      // Translate primary definitions into target language if target is not English
+      if (targetCode !== 'en') {
+        for (const group of meanings) {
+          for (const def of group.definitions) {
+            try {
+              const defTr = await fetchGoogleTranslate(def.en, 'en', targetCode);
+              def.targetMeaning = defTr.translatedText;
+            } catch (e) {
+              def.targetMeaning = '';
+            }
+          }
+        }
+      }
+
+      if (detectedCode.startsWith('en') && dictData?.phonetic) {
+        sourcePhonetic = dictData.phonetic;
+      }
+
+      const primaryPos = meanings[0]?.pos || offlineHit?.partOfSpeech || 'word';
+      const synonyms = (dictData?.synonyms && dictData.synonyms.length > 0)
+        ? dictData.synonyms
+        : (offlineHit?.synonyms || []);
+
+      return {
+        sourceWord: word,
+        detectedLanguage,
+        detectedLanguageCode: detectedCode,
+        targetLanguage,
+        sourcePhonetic,
+        partOfSpeech: primaryPos,
+        translatedWord,
+        targetPhonetic,
+        alternativeTranslations,
+        meanings,
+        synonyms
+      };
+    }
+
+    // =========================================================================
+    // 6. RENDERING DICTIONARY RESULTS
+    // =========================================================================
+
+    function renderResult(data) {
+      currentResult = data;
+
+      // Top metadata badges
+      elements.detectedLang.textContent = data.detectedLanguage;
+      elements.detectedCode.textContent = data.detectedLanguageCode;
+      elements.targetBadge.textContent = data.targetLanguage;
+
+      // Source card
+      elements.sourceLabel.textContent = `${data.detectedLanguage} (Original)`;
+      elements.sourceWord.textContent = data.sourceWord;
+      elements.sourceWord.dir = isRTL(data.sourceWord) ? 'rtl' : 'ltr';
+      elements.sourcePhonetic.textContent = data.sourcePhonetic ? `/${data.sourcePhonetic}/` : '';
+      elements.posBadge.textContent = data.partOfSpeech;
+
+      // Target card
+      elements.targetLabel.textContent = `${data.targetLanguage} (Translation)`;
+      elements.translatedWord.textContent = data.translatedWord;
+      elements.translatedWord.dir = isRTL(data.translatedWord) ? 'rtl' : 'ltr';
+      elements.targetPhonetic.textContent = data.targetPhonetic ? `/${data.targetPhonetic}/` : '';
+
+      if (Array.isArray(data.alternativeTranslations) && data.alternativeTranslations.length > 0) {
+        elements.altTranslations.textContent = data.alternativeTranslations.join(' • ');
+        elements.altTranslationsWrap.classList.remove('hidden');
+      } else {
+        elements.altTranslationsWrap.classList.add('hidden');
+      }
+
+      // Definitions grouped by Part of Speech
+      elements.definitionsList.innerHTML = '';
+      const collectedExamples = [];
+
+      (data.meanings || []).forEach((group) => {
+        const groupEl = document.createElement('div');
+        groupEl.className = 'space-y-2.5';
+
+        const posHeader = document.createElement('div');
+        posHeader.className = 'flex items-center gap-2';
+        posHeader.innerHTML = `
+          <span class="px-2.5 py-0.5 rounded-md text-xs font-bold uppercase tracking-wider bg-indigo-50 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 border border-indigo-200/70 dark:border-indigo-800/70">
+            ${escapeHtml(group.pos)}
+          </span>
+        `;
+        groupEl.appendChild(posHeader);
+
+        group.definitions.forEach((def, idx) => {
+          if (def.example) {
+            collectedExamples.push(def.example);
+          }
+
+          const hasTargetDef = def.targetMeaning && def.targetMeaning.toLowerCase() !== def.en.toLowerCase();
+          const card = document.createElement('div');
+          card.className = 'p-4 rounded-xl bg-slate-50/90 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/70 space-y-1.5';
+          card.innerHTML = `
+            <div class="flex items-start gap-2.5">
+              <span class="w-6 h-6 rounded-full bg-indigo-100 dark:bg-indigo-900/70 text-indigo-700 dark:text-indigo-300 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
+                ${idx + 1}
+              </span>
+              <div class="flex-1 space-y-1.5">
+                ${hasTargetDef ? `
+                  <p class="text-slate-900 dark:text-white font-semibold text-sm sm:text-base leading-relaxed" dir="${isRTL(def.targetMeaning) ? 'rtl' : 'ltr'}">
+                    ${escapeHtml(def.targetMeaning)}
+                  </p>
+                  <p class="text-slate-600 dark:text-slate-300 text-xs sm:text-sm leading-relaxed border-l-2 border-indigo-300 dark:border-indigo-700 pl-2.5">
+                    ${escapeHtml(def.en)}
+                  </p>
+                ` : `
+                  <p class="text-slate-900 dark:text-slate-100 font-medium text-sm sm:text-base leading-relaxed">
+                    ${escapeHtml(def.en)}
+                  </p>
+                `}
+              </div>
+            </div>
+          `;
+          groupEl.appendChild(card);
+        });
+
+        elements.definitionsList.appendChild(groupEl);
+      });
+
+      // Examples Section
+      elements.examplesList.innerHTML = '';
+      if (collectedExamples.length > 0) {
+        elements.examplesCard.classList.remove('hidden');
+        collectedExamples.slice(0, 4).forEach((sentence) => {
+          const exCard = document.createElement('div');
+          exCard.className = 'p-3.5 rounded-xl bg-slate-50/70 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700/60 flex items-start justify-between gap-3';
+          exCard.innerHTML = `
+            <p class="text-slate-800 dark:text-slate-200 text-sm sm:text-base italic" dir="${isRTL(sentence) ? 'rtl' : 'ltr'}">
+              “${escapeHtml(sentence)}”
+            </p>
+            <button
+              type="button"
+              class="speak-ex-btn p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-white dark:hover:bg-slate-800 transition-colors shrink-0 cursor-pointer"
+              title="Listen to example sentence"
+              data-sentence="${escapeHtml(sentence)}"
+            >
+              <i data-lucide="volume-2" class="w-4 h-4"></i>
+            </button>
+          `;
+          elements.examplesList.appendChild(exCard);
+        });
+
+        elements.examplesList.querySelectorAll('.speak-ex-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const s = btn.dataset.sentence;
+            speakText(s, isRTL(s) ? data.detectedLanguageCode : 'en');
+          });
+        });
+      } else {
+        elements.examplesCard.classList.add('hidden');
+      }
+
+      // Synonyms Section
+      elements.synonymsList.innerHTML = '';
+      if (Array.isArray(data.synonyms) && data.synonyms.length > 0) {
+        elements.synonymsCard.classList.remove('hidden');
+        data.synonyms.forEach((syn) => {
+          const chip = document.createElement('button');
+          chip.type = 'button';
+          chip.className = 'px-3 py-1.5 rounded-xl text-xs sm:text-sm font-medium bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/70 text-slate-700 dark:text-slate-300 hover:text-indigo-700 dark:hover:text-indigo-300 border border-slate-200/80 dark:border-slate-700 transition-colors cursor-pointer';
+          chip.textContent = syn;
+          chip.title = `Look up "${syn}"`;
+          chip.addEventListener('click', () => {
+            elements.wordInput.value = syn;
+            toggleClearButton();
+            performLookup(syn, elements.targetLangSelect.value);
+          });
+          elements.synonymsList.appendChild(chip);
+        });
+      } else {
+        elements.synonymsCard.classList.add('hidden');
+      }
+
+      setViewState('result');
+      if (window.lucide) {
+        lucide.createIcons();
+      }
+    }
+
+    // =========================================================================
+    // 7. RECENT SEARCHES PERSISTENCE
+    // =========================================================================
+
+    function loadHistory() {
+      try {
+        const saved = localStorage.getItem(HISTORY_STORAGE_KEY);
+        searchHistory = saved ? JSON.parse(saved) : [];
+      } catch (e) {
+        searchHistory = [];
+      }
+      renderHistory();
+    }
+
+    function saveToHistory(entry) {
+      searchHistory = searchHistory.filter(
+        item => !(item.sourceWord.toLowerCase() === entry.sourceWord.toLowerCase() && item.targetLanguage === entry.targetLanguage)
+      );
+      searchHistory.unshift({ ...entry, timestamp: Date.now() });
+      if (searchHistory.length > MAX_HISTORY_ITEMS) {
+        searchHistory = searchHistory.slice(0, MAX_HISTORY_ITEMS);
+      }
+      try {
+        localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(searchHistory));
+      } catch (e) {}
+      renderHistory();
+    }
+
+    function clearAllHistory() {
+      searchHistory = [];
+      try {
+        localStorage.removeItem(HISTORY_STORAGE_KEY);
+      } catch (e) {}
+      renderHistory();
+      showToast('Search history cleared.', 'info');
+    }
+
+    function renderHistory() {
+      elements.historyList.innerHTML = '';
+
+      if (searchHistory.length === 0) {
+        elements.clearHistoryBtn.classList.add('hidden');
+        elements.mobileHistoryBadge.classList.add('hidden');
+        elements.historyList.innerHTML = `
+          <div class="text-center py-10 px-4 space-y-2">
+            <div class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 flex items-center justify-center mx-auto">
+              <i data-lucide="clock" class="w-5 h-5"></i>
+            </div>
+            <p class="text-xs font-medium text-slate-500 dark:text-slate-400">No recent lookups yet</p>
+            <p class="text-[11px] text-slate-400 dark:text-slate-500">Words you search will automatically appear here for quick access.</p>
+          </div>
+        `;
+        if (window.lucide) lucide.createIcons();
+        return;
+      }
+
+      elements.clearHistoryBtn.classList.remove('hidden');
+      elements.mobileHistoryBadge.textContent = searchHistory.length;
+      elements.mobileHistoryBadge.classList.remove('hidden');
+
+      searchHistory.forEach((item) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'w-full text-left p-3 rounded-xl hover:bg-indigo-50/70 dark:hover:bg-indigo-950/50 border border-slate-100 dark:border-slate-800 hover:border-indigo-200/80 dark:hover:border-indigo-800/70 bg-slate-50/60 dark:bg-slate-800/40 transition-all group cursor-pointer';
+        btn.innerHTML = `
+          <div class="flex items-center justify-between gap-2">
+            <span class="font-semibold text-sm text-slate-800 dark:text-slate-100 group-hover:text-indigo-700 dark:group-hover:text-indigo-300 truncate" dir="${isRTL(item.sourceWord) ? 'rtl' : 'ltr'}">
+              ${escapeHtml(item.sourceWord)}
+            </span>
+            <span class="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200/80 dark:border-slate-700 shrink-0">
+              ${escapeHtml(item.detectedLanguageCode)} → ${escapeHtml(item.targetLanguage.slice(0, 3))}
+            </span>
+          </div>
+          <p class="text-xs text-slate-500 dark:text-slate-400 truncate mt-1" dir="${isRTL(item.translatedWord) ? 'rtl' : 'ltr'}">
+            ${escapeHtml(item.translatedWord)}
+          </p>
+        `;
+        btn.addEventListener('click', () => {
+          elements.wordInput.value = item.sourceWord;
+          elements.targetLangSelect.value = item.targetLanguage;
+          toggleClearButton();
+          renderResult(item);
+          closeMobileDrawer();
+        });
+        elements.historyList.appendChild(btn);
+      });
+    }
+
+    // =========================================================================
+    // 8. MAIN LOOKUP WORKFLOW & EVENT LISTENERS
+    // =========================================================================
+
+    async function performLookup(word, targetLanguage) {
+      const trimmed = word.trim();
+      if (!trimmed) {
+        showToast('Please enter a word or short phrase first.', 'warning');
+        elements.wordInput.focus();
+        return;
+      }
+
+      lastQuery = { word: trimmed, targetLang: targetLanguage };
+      elements.submitBtn.disabled = true;
+      setViewState('loading');
+
+      try {
+        const result = await lookupWord(trimmed, targetLanguage);
+        renderResult(result);
+        saveToHistory(result);
+      } catch (error) {
+        console.error('LexiBridge Lookup Error:', error);
+        elements.errorMessage.textContent =
+          'We could not connect to the dictionary service right now. Check your connection or try one of the sample words.';
+        setViewState('error');
+      } finally {
+        elements.submitBtn.disabled = false;
+      }
+    }
+
+    function toggleClearButton() {
+      if (elements.wordInput.value.trim().length > 0) {
+        elements.clearInputBtn.classList.remove('hidden');
+      } else {
+        elements.clearInputBtn.classList.add('hidden');
+      }
+    }
+
+    function openMobileDrawer() {
+      elements.historyDrawer.classList.remove('translate-x-full');
+      elements.drawerBackdrop.classList.remove('hidden');
+    }
+
+    function closeMobileDrawer() {
+      elements.historyDrawer.classList.add('translate-x-full');
+      elements.drawerBackdrop.classList.add('hidden');
+    }
+
+    // Three-dot options menu events
+    elements.optionsMenuBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleOptionsMenu();
+    });
+
+    elements.themeToggleBtn.addEventListener('click', () => {
+      applyTheme(!isDarkMode);
+      toggleOptionsMenu(false);
+    });
+
+    elements.dropdownClearHistoryBtn.addEventListener('click', () => {
+      clearAllHistory();
+      toggleOptionsMenu(false);
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!elements.optionsMenuWrapper.contains(e.target)) {
+        toggleOptionsMenu(false);
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        toggleOptionsMenu(false);
+        closeMobileDrawer();
+      }
+    });
+
+    // Form submit
+    elements.form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      performLookup(elements.wordInput.value, elements.targetLangSelect.value);
+    });
+
+    // Input clear button
+    elements.wordInput.addEventListener('input', toggleClearButton);
+    elements.clearInputBtn.addEventListener('click', () => {
+      elements.wordInput.value = '';
+      toggleClearButton();
+      elements.wordInput.focus();
+    });
+
+    // Swap button: moves translated word into input & flips target language to previous source language if supported
+    elements.swapLangBtn.addEventListener('click', () => {
+      if (!currentResult || !currentResult.translatedWord) {
+        showToast('Look up a word first to swap languages.', 'info');
+        return;
+      }
+      const prevDetectedName = currentResult.detectedLanguage;
+      elements.wordInput.value = currentResult.translatedWord;
+      toggleClearButton();
+
+      const matchingOption = Array.from(elements.targetLangSelect.options).find(
+        opt => opt.value.toLowerCase() === prevDetectedName.toLowerCase()
+      );
+      if (matchingOption) {
+        elements.targetLangSelect.value = matchingOption.value;
+      }
+      performLookup(elements.wordInput.value, elements.targetLangSelect.value);
+    });
+
+    // Sample chips
+    elements.sampleChips.forEach((chip) => {
+      chip.addEventListener('click', () => {
+        const sampleWord = chip.dataset.sample;
+        const suggestedTarget = chip.dataset.target;
+        elements.wordInput.value = sampleWord;
+        if (suggestedTarget) {
+          elements.targetLangSelect.value = suggestedTarget;
+        }
+        toggleClearButton();
+        performLookup(sampleWord, elements.targetLangSelect.value);
+      });
+    });
+
+    // Auto re-translate when target language changes while a result is displayed
+    elements.targetLangSelect.addEventListener('change', () => {
+      const currentInput = elements.wordInput.value.trim();
+      if (currentInput && currentResult) {
+        performLookup(currentInput, elements.targetLangSelect.value);
+      }
+    });
+
+    // Retry button
+    elements.retryBtn.addEventListener('click', () => {
+      if (lastQuery.word) {
+        performLookup(lastQuery.word, lastQuery.targetLang);
+      }
+    });
+
+    // Audio Pronunciation Buttons
+    elements.speakSourceBtn.addEventListener('click', () => {
+      if (currentResult) {
+        speakText(currentResult.sourceWord, currentResult.detectedLanguageCode);
+      }
+    });
+
+    elements.speakTargetBtn.addEventListener('click', () => {
+      if (currentResult) {
+        speakText(currentResult.translatedWord, currentResult.targetLanguage);
+      }
+    });
+
+    // Copy Buttons
+    elements.copySourceBtn.addEventListener('click', () => {
+      if (currentResult) copyToClipboard(currentResult.sourceWord, 'Original word');
+    });
+
+    elements.copyTargetBtn.addEventListener('click', () => {
+      if (currentResult) copyToClipboard(currentResult.translatedWord, 'Translation');
+    });
+
+    elements.copyResultBtn.addEventListener('click', () => {
+      if (!currentResult) return;
+      const defs = (currentResult.meanings || [])
+        .flatMap(g => g.definitions.map((d, i) => `${i + 1}. [${g.pos}] ${d.targetMeaning || d.en}`))
+        .join('\n');
+
+      const summary = [
+        `${currentResult.sourceWord} (${currentResult.detectedLanguage}) → ${currentResult.translatedWord} (${currentResult.targetLanguage})`,
+        `Meanings:\n${defs}`,
+        currentResult.synonyms?.length ? `Synonyms: ${currentResult.synonyms.join(', ')}` : ''
+      ].filter(Boolean).join('\n\n');
+
+      copyToClipboard(summary, 'Full dictionary entry');
+    });
+
+    // History Drawer Controls
+    elements.toggleHistoryBtn.addEventListener('click', openMobileDrawer);
+    elements.closeHistoryBtn.addEventListener('click', closeMobileDrawer);
+    elements.drawerBackdrop.addEventListener('click', closeMobileDrawer);
+    elements.clearHistoryBtn.addEventListener('click', clearAllHistory);
+
+    // Initialize App
+    window.addEventListener('DOMContentLoaded', () => {
+      initTheme();
+      if (window.lucide) lucide.createIcons();
+      loadHistory();
+      elements.wordInput.focus();
+    });
+  </script>
+</body>
+</html>
